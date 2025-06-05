@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Personal Expense Tracker</title>
+
+  <!-- TailwindCSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    /* Custom Glassmorphism card style */
+    .glass-card {
+      background: rgba(255 255 255 / 0.15);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 1rem;
+      border: 1px solid rgba(255 255 255 / 0.3);
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+      transition: box-shadow 0.3s ease;
+    }
+    .glass-card:hover {
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.25);
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-gray-200 to-gray-400 dark:from-gray-900 dark:to-gray-800 transition-colors duration-500 min-h-screen flex flex-col">
+
+  <!-- Navbar -->
+  <nav class="sticky top-0 bg-white dark:bg-gray-900 bg-opacity-60 dark:bg-opacity-60 backdrop-blur-md shadow-md flex justify-around py-3 z-20">
+    <button id="nav-home" class="nav-btn text-gray-800 dark:text-gray-200 font-semibold hover:text-indigo-500 dark:hover:text-indigo-400 transition flex flex-col items-center text-sm">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7m-9 2v8m-4 0h12"/>
+      </svg>
+      Home
+    </button>
+    <button id="nav-add" class="nav-btn text-gray-800 dark:text-gray-200 font-semibold hover:text-indigo-500 dark:hover:text-indigo-400 transition flex flex-col items-center text-sm">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+      </svg>
+      Add
+    </button>
+    <button id="nav-history" class="nav-btn text-gray-800 dark:text-gray-200 font-semibold hover:text-indigo-500 dark:hover:text-indigo-400 transition flex flex-col items-center text-sm">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h2a2 2 0 012 2v8a2 2 0 01-2 2H3v-12zM7 4h10v4H7V4z"/>
+      </svg>
+      History
+    </button>
+    <button id="dark-mode-toggle" class="text-gray-800 dark:text-gray-200 hover:text-indigo-500 dark:hover:text-indigo-400 transition flex flex-col items-center text-sm" title="Toggle Dark Mode">
+      <svg id="icon-light" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1 block dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m8.485-8.485l-.707.707M4.222 19.778l-.707-.707M21 12h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+      </svg>
+      <svg id="icon-dark" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1 hidden dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+      </svg>
+      Dark
+    </button>
+  </nav>
+
+  <!-- Main Container -->
+  <main class="flex-grow max-w-7xl mx-auto px-4 py-6 w-full">
+    
+    <!-- Home View -->
+    <section id="home-view" class="space-y-6">
+
+      <!-- Salary Input -->
+      <div class="glass-card p-5 max-w-md mx-auto">
+        <h2 class="text-xl font-bold mb-4 text-indigo-600 dark:text-indigo-400">Set Monthly Salary & Savings Target</h2>
+        <form id="salary-form" class="flex flex-col gap-4">
+          <label>
+            Monthly Salary (₹): 
+            <input type="number" min="0" id="salary-input" class="w-full p-2 rounded border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-800 dark:text-white" placeholder="Enter your monthly salary" required />
+          </label>
+          <label>
+            Savings Target (%): 
+            <input type="number" min="0" max="100" id="savings-target-input" class="w-full p-2 rounded border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-800 dark:text-white" placeholder="Default 20%" />
+          </label>
+          <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded transition">Save</button>
+        </form>
+      </div>
+
+      <!-- Summary Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-4 gap-6 max-w-5xl mx-auto">
+        <div id="total-expenses-card" class="glass-card p-5 text-center">
+          <h3 class="text-lg font-semibold mb-2">Total Expenses</h3>
+          <p class="text-3xl font-bold text-red-600 dark:text-red-400">₹0</p>
+        </div>
+        <div id="remaining-budget-card" class="glass-card p-5 text-center">
+          <h3 class="text-lg font-semibold mb-2">Remaining Budget</h3>
+          <p class="text-3xl font-bold text-green-600 dark:text-green-400">₹0</p>
+        </div>
+        <div id="savings-so-far-card" class="glass-card p-5 text-center">
+          <h3 class="text-lg font-semibold mb-2">Savings So Far</h3>
+          <p class="text-3xl font-bold text-indigo-600 dark:text-indigo-400">₹0</p>
+        </div>
+        <div id="daily-limit-card" class="glass-card p-5 text-center">
+          <h3 class="text-lg font-semibold mb-2">Daily Limit Suggestion</h3>
+          <p class="text-3xl font-bold text-yellow-600 dark:text-yellow-400">₹0</p>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="flex flex-col md:flex-row gap-6 max-w-5xl mx-auto mt-8">
+        <div class="glass-card p-5 flex-1">
+          <h3 class="text-lg font-semibold mb-4 text-center text-indigo-600 dark:text-indigo-400">Category-wise Spending</h3>
+          <canvas id="categoryChart" class="w-full"></canvas>
+        </div>
+        <div class="glass-card p-5 flex-1">
+          <h3 class="text-lg font-semibold mb-4 text-center text-indigo-600 dark:text-indigo-400">Weekly Spending (Last 7 Days)</h3>
+          <canvas id="weeklyChart" class="w-full"></canvas>
+        </div>
+      </div>
+
+      <!-- Motivational Tips & Alerts -->
+      <div id="alerts" class="max-w-5xl mx-auto mt-6 space-y-2"></div>
+
+      <!-- Export Buttons -->
+      <div class="max-w-5xl mx-auto mt-6 flex gap-4 justify-center">
+        <button id="export-json" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded transition">Export JSON</button>
+        <button id="export-csv" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded transition">Export CSV</button>
+      </div>
+
+    </section>
+
+    <!-- Add Expense View -->
+    <section id="add-view" class="hidden max-w-md mx-auto glass-card p-6">
+      <h2 class="text-xl font-bold mb-6 text-indigo-600 dark:text-indigo-400">Add / Edit Expense</h2>
+      <form id="expense-form" class="flex flex-col gap-4">
+        <input type="hidden" id="expense-id" />
+        <label>
+          Expense Name:
+          <input type="text" id="expense-name" required class="w-full p-2 rounded border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-800 dark:text-white" placeholder="e.g. Grocery" />
+        </label>
+        <label>
+          Amount (₹):
+          <input type="number" id="expense-amount" min="0.01" step="0.01" required class="w-full p-2 rounded border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-800 dark:text-white" placeholder="e.g. 500" />
+        </label>
+        <label>
+          Category:
+          <select id="expense-category" required class="w-full p-2 rounded border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-800 dark:text-white">
+            <option value="" disabled selected>Select category</option>
+            <option>Room Rent</option>
+            <option>Food (Home)</option>
+            <option>Food (Outside)</option>
+            <option>Transport</option>
+            <option>Subscriptions</option>
+            <option>Health</option>
+            <option>Shopping</option>
+            <option>Misc</option>
+          </select>
+        </label>
+        <label>
+          Date:
+          <input type="date" id="expense-date" required class="w-full p-2 rounded border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-800 dark:text-white" />
+        </label>
+        <label>
+          Notes (Optional):
+          <textarea id="expense-notes" rows="2" class="w-full p-2 rounded border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-800 dark:text-white" placeholder="Additional details..."></textarea>
+        </label>
+        <div class="flex justify-between items-center">
+          <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-6 rounded transition">Save Expense</button>
+          <button type="button" id="expense-cancel" class="text-gray-600 hover:text-indigo-600 transition">Cancel</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Expense History View -->
+    <section id="history-view" class="hidden max-w-6xl mx-auto mt-6">
+      <h2 class="text-xl font-bold mb-4 text-indigo-600 dark:text-indigo-400 text-center">Expense History</h2>
+      <div class="flex flex-col md:flex-row gap-4 mb-4 justify-center">
+        <select id="filter-category" class="p-2 rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <option value="">Filter by Category</option>
+          <option>Room Rent</option>
+          <option>Food (Home)</option>
+          <option>Food (Outside)</option>
+          <option>Transport</option>
+          <option>Subscriptions</option>
+          <option>Health</option>
+          <option>Shopping</option>
+          <option>Misc</option>
+        </select>
+        <input type="date" id="filter-date" class="p-2 rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Filter by Date" />
+        <button id="clear-filters" class="bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600 rounded px-4 py-2">Clear Filters</button>
+      </div>
+      <div class="overflow-x-auto rounded glass-card shadow">
+        <table class="min-w-full text-left border-collapse">
+          <thead class="bg-indigo-100 dark:bg-indigo-900">
+            <tr>
+              <th class="px-4 py-2 border">Date</th>
+              <th class="px-4 py-2 border">Name</th>
+              <th class="px-4 py-2 border">Category</th>
+              <th class="px-4 py-2 border">Amount (₹)</th>
+              <th class="px-4 py-2 border">Notes</th>
+              <th class="px-4 py-2 border">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="expense-table-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      // Elements
+      const navHome = document.getElementById("nav-home");
+      const navAdd = document.getElementById("nav-add");
+      const navHistory = document.getElementById("nav-history");
+
+      const homeView = document.getElementById("home-view");
+      const addView = document.getElementById("add-view");
+      const historyView = document.getElementById("history-view");
+
+      const salaryForm = document.getElementById("salary-form");
+      const salaryInput = document.getElementById("salary-input");
+      const savingsTargetInput = document.getElementById("savings-target-input");
+
+      const totalExpensesCard = document.getElementById("total-expenses-card").querySelector("p");
+      const remainingBudgetCard = document.getElementById("remaining-budget-card").querySelector("p");
+      const savingsSoFarCard = document.getElementById("savings-so-far-card").querySelector("p");
+      const dailyLimitCard = document.getElementById("daily-limit-card").querySelector("p");
+
+      const alertsDiv = document.getElementById("alerts");
+
+      const expenseForm = document.getElementById("expense-form");
+      const expenseIdInput = document.getElementById("expense-id");
+      const expenseNameInput = document.getElementById("expense-name");
+      const expenseAmountInput = document.getElementById("expense-amount");
+      const expenseCategoryInput = document.getElementById("expense-category");
+      const expenseDateInput = document.getElementById("expense-date");
+      const expenseNotesInput = document.getElementById("expense-notes");
+      const expenseCancelBtn = document.getElementById("expense-cancel");
+
+      const filterCategory = document.getElementById("filter-category");
+      const filterDate = document.getElementById("filter-date");
+      const clearFiltersBtn = document.getElementById("clear-filters");
+      const expenseTableBody = document.getElementById("expense-table-body");
+
+      const exportJSONBtn = document.getElementById("export-json");
+      const exportCSVBtn = document.getElementById("export-csv");
+
+      const darkModeToggle = document.getElementById("dark-mode-toggle");
+      const iconLight = document.getElementById("icon-light");
+      const iconDark = document.getElementById("icon-dark");
+
+      // Charts
+      let categoryChart = null;
+      let weeklyChart = null;
+
+      // Constants
+      const categories = [
+        "Room Rent",
+        "Food (Home)",
+        "Food (Outside)",
+        "Transport",
+        "Subscriptions",
+        "Health",
+        "Shopping",
+        "Misc",
+      ];
+
+      // Data keys
+      const STORAGE_SALARY_KEY = "expenseTracker_salary";
+      const STORAGE_SAVINGS_TARGET_KEY = "expenseTracker_savingsTarget";
+      const STORAGE_EXPENSES_KEY = "expenseTracker_expenses";
+      const STORAGE_DARKMODE_KEY = "expenseTracker_darkMode";
+
+      // State
+      let salary = 0;
+      let savingsTargetPercent = 20;
+      let expenses = [];
+
+      // --- Utils ---
+      function saveToStorage() {
+        localStorage.setItem(STORAGE_SALARY_KEY, salary);
+        localStorage.setItem(STORAGE_SAVINGS_TARGET_KEY, savingsTargetPercent);
+        localStorage.setItem(STORAGE_EXPENSES_KEY, JSON.stringify(expenses));
+      }
+
+      function loadFromStorage() {
+        const storedSalary = localStorage.getItem(STORAGE_SALARY_KEY);
+        salary = storedSalary ? Number(storedSalary) : 0;
+
+        const storedSavingsTarget = localStorage.getItem(STORAGE_SAVINGS_TARGET_KEY);
+        savingsTargetPercent = storedSavingsTarget ? Number(storedSavingsTarget) : 20;
+
+        const storedExpenses = localStorage.getItem(STORAGE_EXPENSES_KEY);
+        expenses = storedExpenses ? JSON.parse(storedExpenses) : [];
+
+        salaryInput.value = salary || "";
+        savingsTargetInput.value = savingsTargetPercent || 20;
+      }
+
+      function formatDate(dateStr) {
+        const d = new Date(dateStr);
+        if (isNaN(d)) return "";
+        return d.toLocaleDateString("en-IN", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        });
+      }
+
+      function generateId() {
+        return Date.now() + "-" + Math.random().toString(16).slice(2);
+      }
+
+      function calculateTotals() {
+        const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+        const savingsGoal = (salary * savingsTargetPercent) / 100;
+        const savingsSoFar = Math.max(salary - totalExpenses, 0);
+        const remainingBudget = Math.max(salary - totalExpenses - savingsGoal, 0);
+
+        return { totalExpenses, savingsGoal, savingsSoFar, remainingBudget };
+      }
+
+      function calculateDailyLimit() {
+        const today = new Date();
+        const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+        const currentDay = today.getDate();
+
+        // Remaining days including today
+        const daysLeft = daysInMonth - currentDay + 1;
+
+        // Amount left to spend after savings target
+        const { totalExpenses, savingsGoal } = calculateTotals();
+        const leftToSpend = Math.max(salary - totalExpenses - savingsGoal, 0);
+
+        return leftToSpend / daysLeft;
+      }
+
+      // --- Rendering ---
+      function renderSummary() {
+        const { totalExpenses, savingsGoal, savingsSoFar, remainingBudget } = calculateTotals();
+        totalExpensesCard.textContent = `₹${totalExpenses.toFixed(2)}`;
+        savingsSoFarCard.textContent = `₹${savingsSoFar.toFixed(2)}`;
+        remainingBudgetCard.textContent = `₹${remainingBudget.toFixed(2)}`;
+
+        const dailyLimit = calculateDailyLimit();
+        dailyLimitCard.textContent = `₹${dailyLimit.toFixed(2)}`;
+      }
+
+      function renderAlerts() {
+        alertsDiv.innerHTML = "";
+
+        // Alerts if category expenses exceed 30% of salary
+        const alerts = [];
+        for (const cat of categories) {
+          const catTotal = expenses.filter(e => e.category === cat).reduce((sum, e) => sum + e.amount, 0);
+          if (salary && catTotal > salary * 0.3) {
+            alerts.push(`⚠️ You spent ₹${catTotal.toFixed(2)} on ${cat}, which is over 30% of your salary.`);
+          }
+        }
+
+        // If total expenses exceed salary
+        const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+        if (salary && totalExpenses > salary) {
+          alerts.push("⚠️ Total expenses exceed your salary. Please review your spending.");
+        }
+
+        // If savings goal not met
+        const { savingsGoal, savingsSoFar } = calculateTotals();
+        if (salary && savingsSoFar < savingsGoal) {
+          alerts.push(`⚠️ You have saved ₹${savingsSoFar.toFixed(2)} so far, which is less than your savings target of ₹${savingsGoal.toFixed(2)}.`);
+        }
+
+        if (alerts.length === 0) {
+          alertsDiv.innerHTML = `<p class="text-green-700 dark:text-green-400 font-semibold text-center">All good! Keep managing your expenses well.</p>`;
+          return;
+        }
+
+        for (const alert of alerts) {
+          const div = document.createElement("div");
+          div.className = "bg-yellow-100 dark:bg-yellow-900 border-l-4 border-yellow-400 dark:border-yellow-600 p-4 text-yellow-900 dark:text-yellow-300 rounded";
+          div.textContent = alert;
+          alertsDiv.appendChild(div);
+        }
+      }
+
+      function renderCharts() {
+        const ctxCategory = document.getElementById("categoryChart").getContext("2d");
+        const ctxWeekly = document.getElementById("weeklyChart").getContext("2d");
+
+        // Category wise totals
+        const categoryTotals = {};
+        for (const cat of categories) categoryTotals[cat] = 0;
+        for (const e of expenses) {
+          if (categoryTotals.hasOwnProperty(e.category)) {
+            categoryTotals[e.category] += e.amount;
+          }
+        }
+
+        // Destroy existing chart if any
+        if (categoryChart) categoryChart.destroy();
+        categoryChart = new Chart(ctxCategory, {
+          type: "pie",
+          data: {
+            labels: categories,
+            datasets: [{
+              label: "Category-wise Spending",
+              data: categories.map(cat => categoryTotals[cat]),
+              backgroundColor: [
+                "#6366F1", // indigo-500
+                "#3B82F6", // blue-500
+                "#2563EB", // blue-600
+                "#4B5563", // gray-600
+                "#FBBF24", // yellow-400
+                "#10B981", // green-500
+                "#EF4444", // red-500
+                "#A78BFA", // purple-400
+              ],
+              borderWidth: 1,
+              borderColor: "#fff"
+            }],
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { position: "bottom" } },
+          },
+        });
+
+        // Weekly spending (last 7 days)
+        const today = new Date();
+        const last7Days = [];
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date(today);
+          d.setDate(today.getDate() - i);
+          last7Days.push(d);
+        }
+
+        const dailyTotals = last7Days.map(d => {
+          const dStr = d.toISOString().slice(0, 10);
+          return expenses
+            .filter(e => e.date === dStr)
+            .reduce((sum, e) => sum + e.amount, 0);
+        });
+
+        if (weeklyChart) weeklyChart.destroy();
+        weeklyChart = new Chart(ctxWeekly, {
+          type: "bar",
+          data: {
+            labels: last7Days.map(d => d.toLocaleDateString("en-IN", { day: "numeric", month: "short" })),
+            datasets: [{
+              label: "Daily Expenses",
+              data: dailyTotals,
+              backgroundColor: "#3B82F6",
+            }],
+          },
+          options: {
+            responsive: true,
+            scales: {
+              y: {
+                beginAtZero: true,
+              },
+            },
+            plugins: {
+              legend: { display: false },
+            },
+          },
+        });
+      }
+
+      function renderExpenseTable(filter = {}) {
+        expenseTableBody.innerHTML = "";
+
+        let filteredExpenses = [...expenses];
+        if (filter.category) {
+          filteredExpenses = filteredExpenses.filter(e => e.category === filter.category);
+        }
+        if (filter.date) {
+          filteredExpenses = filteredExpenses.filter(e => e.date === filter.date);
+        }
+
+        if (filteredExpenses.length === 0) {
+          const tr = document.createElement("tr");
+          const td = document.createElement("td");
+          td.colSpan = 6;
+          td.className = "text-center p-4";
+          td.textContent = "No expenses found.";
+          tr.appendChild(td);
+          expenseTableBody.appendChild(tr);
+          return;
+        }
+
+        filteredExpenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        for (const expense of filteredExpenses) {
+          const tr = document.createElement("tr");
+          tr.className = "border-b border-gray-300 dark:border-gray-700";
+
+          const dateTd = document.createElement("td");
+          dateTd.className = "px-4 py-2";
+          dateTd.textContent = formatDate(expense.date);
+          tr.appendChild(dateTd);
+
+          const nameTd = document.createElement("td");
+          nameTd.className = "px-4 py-2";
+          nameTd.textContent = expense.name;
+          tr.appendChild(nameTd);
+
+          const categoryTd = document.createElement("td");
+          categoryTd.className = "px-4 py-2";
+          categoryTd.textContent = expense.category;
+          tr.appendChild(categoryTd);
+
+          const amountTd = document.createElement("td");
+          amountTd.className = "px-4 py-2 text-red-600 dark:text-red-400 font-semibold";
+          amountTd.textContent = `₹${expense.amount.toFixed(2)}`;
+          tr.appendChild(amountTd);
+
+          const notesTd = document.createElement("td");
+          notesTd.className = "px-4 py-2";
+          notesTd.textContent = expense.notes || "";
+          tr.appendChild(notesTd);
+
+          const actionsTd = document.createElement("td");
+          actionsTd.className = "px-4 py-2 space-x-2";
+
+          const editBtn = document.createElement("button");
+          editBtn.className = "text-indigo-600 hover:text-indigo-800";
+          editBtn.textContent = "Edit";
+          editBtn.addEventListener("click", () => editExpense(expense.id));
+          actionsTd.appendChild(editBtn);
+
+          const deleteBtn = document.createElement("button");
+          deleteBtn.className = "text-red-600 hover:text-red-800";
+          deleteBtn.textContent = "Delete";
+          deleteBtn.addEventListener("click", () => deleteExpense(expense.id));
+          actionsTd.appendChild(deleteBtn);
+
+          tr.appendChild(actionsTd);
+
+          expenseTableBody.appendChild(tr);
+        }
+      }
+
+      // --- Navigation ---
+      function showView(view) {
+        homeView.classList.add("hidden");
+        addView.classList.add("hidden");
+        historyView.classList.add("hidden");
+
+        navHome.classList.remove("text-indigo-500");
+        navAdd.classList.remove("text-indigo-500");
+        navHistory.classList.remove("text-indigo-500");
+
+        switch (view) {
+          case "home":
+            homeView.classList.remove("hidden");
+            navHome.classList.add("text-indigo-500");
+            break;
+          case "add":
+            addView.classList.remove("hidden");
+            navAdd.classList.add("text-indigo-500");
+            break;
+          case "history":
+            historyView.classList.remove("hidden");
+            navHistory.classList.add("text-indigo-500");
+            break;
+        }
+      }
+
+      // --- Expense CRUD ---
+      function addOrUpdateExpense(expense) {
+        if (expense.id) {
+          // Update existing
+          const idx = expenses.findIndex(e => e.id === expense.id);
+          if (idx !== -1) expenses[idx] = expense;
+        } else {
+          // Add new
+          expense.id = generateId();
+          expenses.push(expense);
+        }
+        saveToStorage();
+        renderSummary();
+        renderAlerts();
+        renderCharts();
+        renderExpenseTable();
+      }
+
+      function deleteExpense(id) {
+        if (!confirm("Are you sure you want to delete this expense?")) return;
+        expenses = expenses.filter(e => e.id !== id);
+        saveToStorage();
+        renderSummary();
+        renderAlerts();
+        renderCharts();
+        renderExpenseTable();
+      }
+
+      function editExpense(id) {
+        const expense = expenses.find(e => e.id === id);
+        if (!expense) return;
+
+        expenseIdInput.value = expense.id;
+        expenseNameInput.value = expense.name;
+        expenseAmountInput.value = expense.amount;
+        expenseCategoryInput.value = expense.category;
+        expenseDateInput.value = expense.date;
+        expenseNotesInput.value = expense.notes || "";
+
+        showView("add");
+      }
+
+      // --- Event Listeners ---
+      navHome.addEventListener("click", () => showView("home"));
+      navAdd.addEventListener("click", () => {
+        expenseForm.reset();
+        expenseIdInput.value = "";
+        showView("add");
+      });
+      navHistory.addEventListener("click", () => {
+        renderExpenseTable();
+        showView("history");
+      });
+
+      salaryForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const sal = Number(salaryInput.value);
+        const saveTarget = Number(savingsTargetInput.value);
+        if (isNaN(sal) || sal <= 0) {
+          alert("Please enter a valid monthly salary.");
+          return;
+        }
+        if (isNaN(saveTarget) || saveTarget < 0 || saveTarget > 100) {
+          alert("Savings target must be between 0 and 100.");
+          return;
+        }
+        salary = sal;
+        savingsTargetPercent = saveTarget || 20;
+        saveToStorage();
+        renderSummary();
+        renderAlerts();
+        renderCharts();
+        alert("Salary and savings target saved.");
+      });
+
+      expenseForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const id = expenseIdInput.value;
+        const name = expenseNameInput.value.trim();
+        const amount = Number(expenseAmountInput.value);
+        const category = expenseCategoryInput.value;
+        const date = expenseDateInput.value;
+        const notes = expenseNotesInput.value.trim();
+
+        if (!name) {
+          alert("Please enter expense name.");
+          return;
+        }
+        if (isNaN(amount) || amount <= 0) {
+          alert("Please enter a valid amount.");
+          return;
+        }
+        if (!category) {
+          alert("Please select a category.");
+          return;
+        }
+        if (!date) {
+          alert("Please select a date.");
+          return;
+        }
+
+        addOrUpdateExpense({ id, name, amount, category, date, notes });
+
+        expenseForm.reset();
+        expenseIdInput.value = "";
+        showView("home");
+      });
+
+      expenseCancelBtn.addEventListener("click", () => {
+        expenseForm.reset();
+        expenseIdInput.value = "";
+        showView("home");
+      });
+
+      filterCategory.addEventListener("change", () => {
+        renderExpenseTable({ category: filterCategory.value, date: filterDate.value });
+      });
+
+      filterDate.addEventListener("change", () => {
+        renderExpenseTable({ category: filterCategory.value, date: filterDate.value });
+      });
+
+      clearFiltersBtn.addEventListener("click", () => {
+        filterCategory.value = "";
+        filterDate.value = "";
+        renderExpenseTable();
+      });
+
+      exportJSONBtn.addEventListener("click", () => {
+        const dataStr = JSON.stringify({ salary, savingsTargetPercent, expenses }, null, 2);
+        const blob = new Blob([dataStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `expense_tracker_${new Date().toISOString().slice(0,10)}.json`;
+        a.click();
+
+        URL.revokeObjectURL(url);
+      });
+
+      exportCSVBtn.addEventListener("click", () => {
+        let csv = "Date,Name,Category,Amount,Notes\n";
+        for (const e of expenses) {
+          const row = [
+            e.date,
+            `"${e.name.replace(/"/g, '""')}"`,
+            e.category,
+            e.amount.toFixed(2),
+            `"${(e.notes||"").replace(/"/g, '""')}"`,
+          ].join(",");
+          csv += row + "\n";
+        }
+        const blob = new Blob([csv], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `expense_tracker_${new Date().toISOString().slice(0,10)}.csv`;
+        a.click();
+
+        URL.revokeObjectURL(url);
+      });
+
+      // Dark Mode toggle
+      function setDarkMode(enabled) {
+        if (enabled) {
+          document.documentElement.classList.add("dark");
+          localStorage.setItem(STORAGE_DARKMODE_KEY, "true");
+          iconLight.classList.add("hidden");
+          iconDark.classList.remove("hidden");
+        } else {
+          document.documentElement.classList.remove("dark");
+          localStorage.setItem(STORAGE_DARKMODE_KEY, "false");
+          iconLight.classList.remove("hidden");
+          iconDark.classList.add("hidden");
+        }
+      }
+      darkModeToggle.addEventListener("click", () => {
+        const isDark = document.documentElement.classList.contains("dark");
+        setDarkMode(!isDark);
+      });
+      // On load dark mode
+      (function () {
+        const saved = localStorage.getItem(STORAGE_DARKMODE_KEY);
+        if (saved === "true") setDarkMode(true);
+        else setDarkMode(false);
+      })();
+
+      // Initial Load
+      loadFromStorage();
+      renderSummary();
+      renderAlerts();
+      renderCharts();
+      renderExpenseTable();
+      showView("home");
+    })();
+  </script>
+</body>
+</html>
